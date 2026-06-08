@@ -1,0 +1,103 @@
+package pages
+
+import (
+	"fmt"
+)
+
+templ ImageListPage(images []ImageView) {
+	@layout("Images") {
+		<h1>Images</h1>
+		<p><a href="/admin/images/new">Add image</a></p>
+		<div class="data-grid data-grid-images" role="table">
+			<div role="rowgroup">
+				<div role="row">
+					<span role="columnheader">Preview</span>
+					<span role="columnheader">Name</span>
+					<span role="columnheader">Enabled</span>
+					<span role="columnheader">Actions</span>
+				</div>
+			</div>
+			<div role="rowgroup">
+				for _, img := range images {
+					<div role="row">
+						<span role="cell">
+							if img.URL != "" {
+								<a href={ templ.SafeURL(img.URL) } target="_blank">
+									<img src={ img.URL } alt={ img.Name }/>
+								</a>
+							}
+						</span>
+						<span role="cell">{ img.Name }</span>
+						<span role="cell">
+							if img.Enabled {
+								<span class="badge badge-on">Enabled</span>
+							} else {
+								<span class="badge badge-off">Disabled</span>
+							}
+						</span>
+						<span role="cell">
+							<div class="actions">
+								<a class="btn" href={ templ.SafeURL(fmt.Sprintf("/admin/images/%d/edit", img.ID)) }>Edit</a>
+								<form method="post" action={ templ.SafeURL(fmt.Sprintf("/admin/images/%d/delete", img.ID)) }>
+									<button class="btn-danger" type="submit" onclick="return confirm('Delete this image?')">Delete</button>
+								</form>
+							</div>
+						</span>
+					</div>
+				}
+			</div>
+		</div>
+	}
+}
+
+templ ImageFormPage(title string, img *ImageView, errMsg string) {
+	@layout(title) {
+		<h1>{ title }</h1>
+		if errMsg != "" {
+			<p class="error">{ errMsg }</p>
+		}
+		<form class="form-card" method="post" enctype="multipart/form-data">
+			<div class="form-field">
+				<label for="name">Name</label>
+				<input type="text" id="name" name="name" required value={ imageFieldStr(img, "name") }/>
+			</div>
+			<div class="form-field">
+				<label for="image">Image file</label>
+				if img != nil && img.URL != "" {
+					<div class="preview">
+						<a href={ templ.SafeURL(img.URL) } target="_blank">
+							<img src={ img.URL } height="120" alt={ img.Name }/>
+						</a>
+					</div>
+				}
+				<input type="file" id="image" name="image" accept="image/*"/>
+			</div>
+			<div class="form-field">
+				<label>
+					<input
+						type="checkbox"
+						name="enabled"
+						value="1"
+						checked?={ img == nil || img.Enabled }
+					/>
+					Enabled
+				</label>
+			</div>
+			<div class="form-actions">
+				<button type="submit">Save</button>
+				<a class="btn btn-secondary" href="/admin/images/">Cancel</a>
+			</div>
+		</form>
+	}
+}
+
+func imageFieldStr(img *ImageView, field string) string {
+	if img == nil {
+		return ""
+	}
+	switch field {
+	case "name":
+		return img.Name
+	}
+	return ""
+}

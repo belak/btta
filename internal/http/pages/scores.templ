@@ -1,0 +1,102 @@
+package pages
+
+import (
+	"fmt"
+)
+
+templ ScoreListPage(scores []ScoreView) {
+	@layout("Scores") {
+		<h1>Scores</h1>
+		<p><a href="/admin/scores/new">Add score</a></p>
+		<div class="data-grid data-grid-scores" role="table">
+			<div role="rowgroup">
+				<div role="row">
+					<span role="columnheader">Banner</span>
+					<span role="columnheader">Game</span>
+					<span role="columnheader">Player</span>
+					<span role="columnheader">Score</span>
+					<span role="columnheader">Actions</span>
+				</div>
+			</div>
+			<div role="rowgroup">
+				for _, s := range scores {
+					<div role="row">
+						<span role="cell">
+							if s.ThumbnailURL != "" {
+								<a href={ templ.SafeURL(s.BannerURL) } target="_blank">
+									<img src={ s.ThumbnailURL } alt={ s.GameName }/>
+								</a>
+							}
+						</span>
+						<span role="cell">{ s.GameName }</span>
+						<span role="cell">{ s.PlayerName }</span>
+						<span role="cell">{ fmt.Sprint(s.PlayerScore) }</span>
+						<span role="cell">
+							<div class="actions">
+								<a class="btn" href={ templ.SafeURL(fmt.Sprintf("/admin/scores/%d/edit", s.ID)) }>Edit</a>
+								<form method="post" action={ templ.SafeURL(fmt.Sprintf("/admin/scores/%d/delete", s.ID)) }>
+									<button class="btn-danger" type="submit" onclick="return confirm('Delete this score?')">Delete</button>
+								</form>
+							</div>
+						</span>
+					</div>
+				}
+			</div>
+		</div>
+	}
+}
+
+templ ScoreFormPage(title string, s *ScoreView, errMsg string) {
+	@layout(title) {
+		<h1>{ title }</h1>
+		if errMsg != "" {
+			<p class="error">{ errMsg }</p>
+		}
+		<form class="form-card" method="post" enctype="multipart/form-data">
+			<div class="form-field">
+				<label for="game_name">Game name</label>
+				<input type="text" id="game_name" name="game_name" required value={ scoreFieldStr(s, "game_name") }/>
+			</div>
+			<div class="form-field">
+				<label for="player_name">Player name</label>
+				<input type="text" id="player_name" name="player_name" required value={ scoreFieldStr(s, "player_name") }/>
+			</div>
+			<div class="form-field">
+				<label for="player_score">Score</label>
+				<input type="number" id="player_score" name="player_score" required value={ scoreFieldStr(s, "player_score") }/>
+			</div>
+			<div class="form-field">
+				<label for="game_banner">Game banner image</label>
+				if s != nil && s.ThumbnailURL != "" {
+					<div class="preview">
+						<a href={ templ.SafeURL(s.BannerURL) } target="_blank">
+							<img src={ s.ThumbnailURL } height="80" alt={ s.GameName }/>
+						</a>
+					</div>
+				} else if s != nil && s.GameBanner != "" {
+					<p>Current: { s.GameBanner }</p>
+				}
+				<input type="file" id="game_banner" name="game_banner" accept="image/*"/>
+			</div>
+			<div class="form-actions">
+				<button type="submit">Save</button>
+				<a class="btn btn-secondary" href="/admin/scores/">Cancel</a>
+			</div>
+		</form>
+	}
+}
+
+func scoreFieldStr(s *ScoreView, field string) string {
+	if s == nil {
+		return ""
+	}
+	switch field {
+	case "game_name":
+		return s.GameName
+	case "player_name":
+		return s.PlayerName
+	case "player_score":
+		return fmt.Sprint(s.PlayerScore)
+	}
+	return ""
+}

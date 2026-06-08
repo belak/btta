@@ -1,0 +1,16 @@
+# Go
+*.test
+/result
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Media
+/media/
+
+# Frontend
+frontend/node_modules/
+internal/http/frontend/dist/*
+!internal/http/frontend/dist/.gitkeep

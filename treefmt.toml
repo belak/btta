@@ -1,0 +1,20 @@
+[formatter.nixfmt]
+command = "nixfmt"
+includes = ["*.nix"]
+
+[formatter.goimports]
+command = "goimports"
+options = ["-w"]
+includes = ["*.go"]
+excludes = ["**/*.sql.go", "**/*_templ.go", "**/moq_test.go", "**/moq_*_test.go"]
+
+[formatter.templ]
+command = "templ"
+options = ["fmt"]
+includes = ["*.templ"]
+
+[formatter.prettier]
+command = "prettier"
+options = ["--write"]
+includes = ["*.css", "*.js", "*.json", "*.yml", "*.yaml"]
+excludes = ["**/pnpm-lock.yaml", "**/*.min.js"]

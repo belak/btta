@@ -1,0 +1,50 @@
+package pages
+
+import "github.com/belak/x/versionx"
+
+templ layout(title string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title } — BTTA Admin</title>
+			<link rel="stylesheet" href="/static/admin.css"/>
+		</head>
+		<body>
+			<nav>
+				<span class="site-name">BTTA Admin</span>
+				<span class="sep">|</span>
+				<a href="/admin/scores/">Scores</a>
+				<span class="sep">|</span>
+				<a href="/admin/images/">Images</a>
+				<span class="sep">|</span>
+				<a href="/admin/password">Change password</a>
+				<form class="logout" method="post" action="/admin/logout">
+					<button type="submit">Log out</button>
+				</form>
+			</nav>
+			<main>
+				{ children... }
+			</main>
+			<footer>
+				{ versionx.Get() }
+			</footer>
+		</body>
+	</html>
+}
+
+templ loginLayout(title string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title } — BTTA Admin</title>
+			<link rel="stylesheet" href="/static/admin.css"/>
+		</head>
+		<body>
+			{ children... }
+		</body>
+	</html>
+}
