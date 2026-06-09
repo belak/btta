@@ -64,6 +64,13 @@ SELECT * FROM users ORDER BY username ASC;
 
 -- name: UpdateUserPassword :exec
 UPDATE users
-SET password_hash = ?,
-    updated_at    = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+SET password_hash        = ?,
+    force_password_reset = FALSE,
+    updated_at           = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+WHERE id = ?;
+
+-- name: SetUserForcePasswordReset :exec
+UPDATE users
+SET force_password_reset = TRUE,
+    updated_at           = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
 WHERE id = ?;

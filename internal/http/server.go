@@ -88,12 +88,13 @@ func (s *Server) setupRoutes(database *sql.DB, logger *slog.Logger) {
 	s.router.Handle("POST /admin/login", admin.LoginSubmit)
 	s.router.Handle("POST /admin/logout", admin.Logout)
 
+	// Password change — accessible to both full sessions and pending-reset sessions
+	s.router.Handle("GET /admin/password", admin.ChangePasswordPage)
+	s.router.Handle("POST /admin/password", admin.ChangePasswordSubmit)
+
 	// Admin (authenticated)
 	s.router.Group(func(r *httpx.Router) {
 		r.Use(admin.RequireAuth)
-
-		r.Handle("GET /admin/password", admin.ChangePasswordPage)
-		r.Handle("POST /admin/password", admin.ChangePasswordSubmit)
 
 		r.Handle("GET /admin/", func(w http.ResponseWriter, req *http.Request) {
 			http.Redirect(w, req, "/admin/scores/", http.StatusFound)

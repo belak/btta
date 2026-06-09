@@ -71,7 +71,7 @@ func (q *Queries) CreateScore(ctx context.Context, arg CreateScoreParams) (Score
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (username, password_hash)
 VALUES (?, ?)
-RETURNING id, username, password_hash, created_at, updated_at
+RETURNING id, username, password_hash, created_at, updated_at, force_password_reset
 `
 
 type CreateUserParams struct {
@@ -88,6 +88,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.PasswordHash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ForcePasswordReset,
 	)
 	return i, err
 }
@@ -148,7 +149,7 @@ func (q *Queries) GetScore(ctx context.Context, id int64) (Score, error) {
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, password_hash, created_at, updated_at FROM users WHERE id = ?
+SELECT id, username, password_hash, created_at, updated_at, force_password_reset FROM users WHERE id = ?
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
@@ -160,12 +161,13 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.PasswordHash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ForcePasswordReset,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, password_hash, created_at, updated_at FROM users WHERE username = ?
+SELECT id, username, password_hash, created_at, updated_at, force_password_reset FROM users WHERE username = ?
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
@@ -177,6 +179,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.PasswordHash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ForcePasswordReset,
 	)
 	return i, err
 }
@@ -285,7 +288,7 @@ func (q *Queries) ListScores(ctx context.Context) ([]Score, error) {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, username, password_hash, created_at, updated_at FROM users ORDER BY username ASC
+SELECT id, username, password_hash, created_at, updated_at, force_password_reset FROM users ORDER BY username ASC
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -303,6 +306,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.PasswordHash,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ForcePasswordReset,
 		); err != nil {
 			return nil, err
 		}
@@ -315,6 +319,18 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const setUserForcePasswordReset = `-- name: SetUserForcePasswordReset :exec
+UPDATE users
+SET force_password_reset = TRUE,
+    updated_at           = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+WHERE id = ?
+`
+
+func (q *Queries) SetUserForcePasswordReset(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, setUserForcePasswordReset, id)
+	return err
 }
 
 const updateImage = `-- name: UpdateImage :one
@@ -395,8 +411,9 @@ func (q *Queries) UpdateScore(ctx context.Context, arg UpdateScoreParams) (Score
 
 const updateUserPassword = `-- name: UpdateUserPassword :exec
 UPDATE users
-SET password_hash = ?,
-    updated_at    = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+SET password_hash        = ?,
+    force_password_reset = FALSE,
+    updated_at           = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
 WHERE id = ?
 `
 

@@ -18,6 +18,7 @@ import (
 )
 
 const sessionUserKey = "user_id"
+const sessionPendingUserKey = "pending_user_id"
 
 type AdminHandlers struct {
 	queries  *db.Queries
@@ -67,6 +68,12 @@ func (h *AdminHandlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if user.ForcePasswordReset {
+		h.sessions.Put(r.Context(), sessionPendingUserKey, user.ID)
+		http.Redirect(w, r, "/admin/password", http.StatusFound)
+		return
+	}
+
 	h.sessions.Put(r.Context(), sessionUserKey, user.ID)
 	http.Redirect(w, r, "/admin/", http.StatusFound)
 }
@@ -76,15 +83,34 @@ func (h *AdminHandlers) Logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/login", http.StatusFound)
 }
 
+// getPasswordResetUser returns the user for a password change request.
+// It checks the full session first, then the pending-reset session.
+// The bool return is true when the request comes from a pending-reset session.
+func (h *AdminHandlers) getPasswordResetUser(r *http.Request) (db.User, bool, error) {
+	if id := h.sessions.GetInt64(r.Context(), sessionUserKey); id != 0 {
+		user, err := h.queries.GetUserByID(r.Context(), id)
+		return user, false, err
+	}
+	if id := h.sessions.GetInt64(r.Context(), sessionPendingUserKey); id != 0 {
+		user, err := h.queries.GetUserByID(r.Context(), id)
+		return user, true, err
+	}
+	return db.User{}, false, fmt.Errorf("no authenticated user")
+}
+
 func (h *AdminHandlers) ChangePasswordPage(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, ChangePasswordPage("", false))
+	_, forced, err := h.getPasswordResetUser(r)
+	if err != nil {
+		http.Redirect(w, r, "/admin/login", http.StatusFound)
+		return
+	}
+	h.render(w, r, ChangePasswordPage("", false, forced))
 }
 
 func (h *AdminHandlers) ChangePasswordSubmit(w http.ResponseWriter, r *http.Request) {
-	userID := h.sessions.GetInt64(r.Context(), sessionUserKey)
-	user, err := h.queries.GetUserByID(r.Context(), userID)
+	user, forced, err := h.getPasswordResetUser(r)
 	if err != nil {
-		h.render(w, r, ChangePasswordPage("Could not load user.", false))
+		http.Redirect(w, r, "/admin/login", http.StatusFound)
 		return
 	}
 
@@ -93,21 +119,21 @@ func (h *AdminHandlers) ChangePasswordSubmit(w http.ResponseWriter, r *http.Requ
 	confirm := r.FormValue("confirm")
 
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(current)) != nil {
-		h.render(w, r, ChangePasswordPage("Current password is incorrect.", false))
-		return
-	}
-	if newPw != confirm {
-		h.render(w, r, ChangePasswordPage("New passwords do not match.", false))
+		h.render(w, r, ChangePasswordPage("Current password is incorrect.", false, forced))
 		return
 	}
 	if len(newPw) == 0 {
-		h.render(w, r, ChangePasswordPage("New password must not be empty.", false))
+		h.render(w, r, ChangePasswordPage("New password must not be empty.", false, forced))
+		return
+	}
+	if newPw != confirm {
+		h.render(w, r, ChangePasswordPage("New passwords do not match.", false, forced))
 		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPw), bcrypt.DefaultCost)
 	if err != nil {
-		h.render(w, r, ChangePasswordPage("Failed to hash password.", false))
+		h.render(w, r, ChangePasswordPage("Failed to hash password.", false, forced))
 		return
 	}
 
@@ -115,11 +141,18 @@ func (h *AdminHandlers) ChangePasswordSubmit(w http.ResponseWriter, r *http.Requ
 		ID:           user.ID,
 		PasswordHash: string(hash),
 	}); err != nil {
-		h.render(w, r, ChangePasswordPage("Failed to update password.", false))
+		h.render(w, r, ChangePasswordPage("Failed to update password.", false, forced))
 		return
 	}
 
-	h.render(w, r, ChangePasswordPage("", true))
+	if forced {
+		h.sessions.Remove(r.Context(), sessionPendingUserKey)
+		h.sessions.Put(r.Context(), sessionUserKey, user.ID)
+		http.Redirect(w, r, "/admin/", http.StatusFound)
+		return
+	}
+
+	h.render(w, r, ChangePasswordPage("", true, false))
 }
 
 // --- View model helpers ---

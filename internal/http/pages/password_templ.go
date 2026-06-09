@@ -8,7 +8,7 @@ package pages
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-func ChangePasswordPage(errMsg string, ok bool) templ.Component {
+func ChangePasswordPage(errMsg string, ok bool, forced bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -45,8 +45,8 @@ func ChangePasswordPage(errMsg string, ok bool) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if ok {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<p class=\"success\">Password updated successfully.</p>")
+			if forced {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<p class=\"notice\">You must set a new password before continuing.</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -55,26 +55,36 @@ func ChangePasswordPage(errMsg string, ok bool) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
+			if ok {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<p class=\"success\">Password updated successfully.</p>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, " ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 			if errMsg != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<p class=\"error\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<p class=\"error\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(errMsg)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `password.templ`, Line: 10, Col: 28}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `password.templ`, Line: 13, Col: 28}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, " <form class=\"form-card\" method=\"post\" action=\"/admin/password\"><div class=\"form-field\"><label for=\"current\">Current password</label> <input type=\"password\" id=\"current\" name=\"current\" required></div><div class=\"form-field\"><label for=\"new\">New password</label> <input type=\"password\" id=\"new\" name=\"new\" required></div><div class=\"form-field\"><label for=\"confirm\">Confirm new password</label> <input type=\"password\" id=\"confirm\" name=\"confirm\" required></div><div class=\"form-actions\"><button type=\"submit\">Update password</button></div></form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, " <form class=\"form-card\" method=\"post\" action=\"/admin/password\"><div class=\"form-field\"><label for=\"current\">Current password</label> <input type=\"password\" id=\"current\" name=\"current\" required></div><div class=\"form-field\"><label for=\"new\">New password</label> <input type=\"password\" id=\"new\" name=\"new\" required></div><div class=\"form-field\"><label for=\"confirm\">Confirm new password</label> <input type=\"password\" id=\"confirm\" name=\"confirm\" required></div><div class=\"form-actions\"><button type=\"submit\">Update password</button></div></form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
