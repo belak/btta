@@ -41,6 +41,12 @@ func newServeCmd() *ff.Command {
 			ctx, cancel := httpx.WithSignalShutdown(ctx, logger)
 			defer cancel()
 
+			logger.Info("starting server",
+				slogx.String("bind", *bind),
+				slogx.String("db", *dbPath),
+				slogx.String("media_dir", *mediaDir),
+			)
+
 			return httpx.ListenAndServe(ctx, *bind, server, logger)
 		},
 	}

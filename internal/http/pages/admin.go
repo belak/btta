@@ -94,9 +94,13 @@ func (h *AdminHandlers) LoginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
+	logger := slogx.FromContext(r.Context())
+	ip := h.ips.ClientIP(r)
+
 	// Throttle login attempts per client IP to blunt brute-force attacks.
-	rateKey := "login:" + h.ips.ClientIP(r)
+	rateKey := "login:" + ip
 	if !h.loginLimiter.Allow(rateKey) {
+		logger.Warn("login rate limited", slogx.String("ip", ip))
 		h.render(w, r, LoginPage("Too many login attempts. Please wait and try again."))
 		return
 	}
@@ -112,6 +116,7 @@ func (h *AdminHandlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		hash = dummyPasswordHash
 	}
 	if bcrypt.CompareHashAndPassword(hash, []byte(password)) != nil || err != nil {
+		logger.Warn("login failed", slogx.String("username", username), slogx.String("ip", ip))
 		h.render(w, r, LoginPage("Invalid username or password."))
 		return
 	}
@@ -119,6 +124,7 @@ func (h *AdminHandlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	// Successful auth — clear the throttle so a legitimate user isn't
 	// penalized by earlier failed attempts.
 	h.loginLimiter.Reset(rateKey)
+	logger.Info("login succeeded", slogx.String("username", username), slogx.String("ip", ip))
 
 	// Rotate the session token on login to prevent session fixation.
 	if err := h.sessions.RenewToken(r.Context()); err != nil {
