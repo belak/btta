@@ -24,11 +24,78 @@
           pkgs,
           ...
         }:
+        let
+          # pnpm 11 (the nixpkgs default behind fetchPnpmDeps) crashes on
+          # exit under node 24, and the frontend lockfile was generated with
+          # pnpm 10 — pin it for both the deps fetcher and the devshell.
+          pnpm = pkgs.pnpm_10;
+        in
         {
-          packages = lib.packagesFromDirectoryRecursive {
-            callPackage = pkgs.callPackage;
-            directory = ./nix/pkgs;
-          };
+          packages =
+            lib.packagesFromDirectoryRecursive {
+              callPackage = pkgs.callPackage;
+              directory = ./nix/pkgs;
+            }
+            // {
+              default = config.packages.btta;
+
+              # The Svelte frontend, built by Vite into a directory that
+              # cmd/btta embeds via go:embed.
+              btta-frontend = pkgs.stdenv.mkDerivation (finalAttrs: {
+                pname = "btta-frontend";
+                version = "0.1.0";
+
+                src = ./frontend;
+
+                pnpmDeps = (pkgs.fetchPnpmDeps.override { inherit pnpm; }) {
+                  inherit (finalAttrs) pname version src;
+                  fetcherVersion = 3;
+                  hash = "sha256-U3r6BkEM6z5ErpHyhpYsq/JsGK0beyJr6cu+Jj+ezT8=";
+                };
+
+                nativeBuildInputs = [
+                  pkgs.nodejs
+                  pnpm
+                  (pkgs.pnpmConfigHook.override { inherit pnpm; })
+                ];
+
+                buildPhase = ''
+                  runHook preBuild
+                  pnpm exec vite build --outDir dist --emptyOutDir
+                  runHook postBuild
+                '';
+
+                installPhase = ''
+                  runHook preInstall
+                  cp -r dist $out
+                  runHook postInstall
+                '';
+              });
+
+              btta = pkgs.buildGoModule {
+                pname = "btta";
+                version = "0.1.0";
+
+                src = ./.;
+
+                vendorHash = "sha256-CSfbHQMoHnMAr8qF5juByAoW/loNPoAimT0BtE+hu24=";
+
+                subPackages = [ "cmd/btta" ];
+
+                env.CGO_ENABLED = 0;
+
+                # Drop the prebuilt frontend into the embed directory before
+                # the Go build runs go:embed over it.
+                preBuild = ''
+                  cp -r ${config.packages.btta-frontend}/. internal/http/frontend/dist/
+                '';
+
+                ldflags = [
+                  "-s"
+                  "-w"
+                ];
+              };
+            };
 
           devShells.default = pkgs.mkShell {
             env.GOTOOLCHAIN = "local";
