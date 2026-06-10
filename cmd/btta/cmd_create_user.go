@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/belak/x/pass"
 	"github.com/peterbourgon/ff/v4"
-	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
 
 	"github.com/belak/btta/internal/db"
@@ -46,7 +46,7 @@ func newCreateUserCmd() *ff.Command {
 				return fmt.Errorf("password must not be empty")
 			}
 
-			hash, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
+			hash, err := pass.NewDefaultContext().Hash(string(password))
 			if err != nil {
 				return fmt.Errorf("hash password: %w", err)
 			}
@@ -60,7 +60,7 @@ func newCreateUserCmd() *ff.Command {
 			queries := db.New(database)
 			user, err := queries.CreateUser(ctx, db.CreateUserParams{
 				Username:     username,
-				PasswordHash: string(hash),
+				PasswordHash: hash,
 			})
 			if err != nil {
 				return fmt.Errorf("create user: %w", err)

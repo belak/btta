@@ -19,9 +19,9 @@ import (
 	"github.com/belak/btta/internal/db"
 	"github.com/belak/btta/internal/thumbnail"
 	"github.com/belak/x/httpx"
+	"github.com/belak/x/pass"
 	"github.com/belak/x/ratelimit"
 	"github.com/belak/x/slogx"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const sessionUserKey = "user_id"
@@ -31,17 +31,6 @@ const sessionPendingUserKey = "pending_user_id"
 // client IP before requests are throttled.
 const loginRateLimit = 10
 
-// dummyPasswordHash is compared against when login is attempted for an unknown
-// username, so the response takes the same time as for a real user and doesn't
-// leak whether the username exists. It uses bcrypt.DefaultCost to match the
-// cost of stored hashes.
-var dummyPasswordHash = func() []byte {
-	h, err := bcrypt.GenerateFromPassword([]byte("unused-constant-time-placeholder"), bcrypt.DefaultCost)
-	if err != nil {
-		panic(fmt.Sprintf("generate dummy password hash: %v", err))
-	}
-	return h
-}()
 
 // maxUploadBytes caps the size of an uploaded media file.
 const maxUploadBytes = 10 << 20 // 10 MiB
@@ -59,6 +48,7 @@ type AdminHandlers struct {
 	sessions     *scs.SessionManager
 	loginLimiter *ratelimit.RateLimiter
 	ips          *httpx.IPResolver
+	pass         *pass.Context
 }
 
 func NewAdminHandlers(database *sql.DB, mediaDir string, sessions *scs.SessionManager) *AdminHandlers {
@@ -68,6 +58,7 @@ func NewAdminHandlers(database *sql.DB, mediaDir string, sessions *scs.SessionMa
 		sessions:     sessions,
 		loginLimiter: ratelimit.NewRateLimiter(loginRateLimit, time.Minute),
 		ips:          httpx.NewIPResolver(nil),
+		pass:         pass.NewDefaultContext(),
 	}
 }
 
@@ -109,13 +100,15 @@ func (h *AdminHandlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	user, err := h.queries.GetUserByUsername(r.Context(), username)
-	// Always run bcrypt — against the dummy hash for an unknown user — so the
-	// response time doesn't reveal whether the username exists.
-	hash := []byte(user.PasswordHash)
 	if err != nil {
-		hash = dummyPasswordHash
+		// Run a dummy verification so the response time doesn't reveal
+		// whether the username exists.
+		h.pass.DummyVerify(password)
+		logger.Warn("login failed", slogx.String("username", username), slogx.String("ip", ip))
+		h.render(w, r, LoginPage("Invalid username or password."))
+		return
 	}
-	if bcrypt.CompareHashAndPassword(hash, []byte(password)) != nil || err != nil {
+	if h.pass.Verify(user.PasswordHash, password) != nil {
 		logger.Warn("login failed", slogx.String("username", username), slogx.String("ip", ip))
 		h.render(w, r, LoginPage("Invalid username or password."))
 		return
@@ -125,6 +118,17 @@ func (h *AdminHandlers) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	// penalized by earlier failed attempts.
 	h.loginLimiter.Reset(rateKey)
 	logger.Info("login succeeded", slogx.String("username", username), slogx.String("ip", ip))
+
+	// Transparently rehash on login when the stored hash uses an outdated
+	// scheme (e.g. bcrypt → argon2id) or outdated parameters.
+	if h.pass.NeedsUpdate(user.PasswordHash) {
+		if newHash, err := h.pass.Hash(password); err == nil {
+			_ = h.queries.UpdateUserPassword(r.Context(), db.UpdateUserPasswordParams{
+				ID:           user.ID,
+				PasswordHash: newHash,
+			})
+		}
+	}
 
 	// Rotate the session token on login to prevent session fixation.
 	if err := h.sessions.RenewToken(r.Context()); err != nil {
@@ -182,7 +186,7 @@ func (h *AdminHandlers) ChangePasswordSubmit(w http.ResponseWriter, r *http.Requ
 	newPw := r.FormValue("new")
 	confirm := r.FormValue("confirm")
 
-	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(current)) != nil {
+	if h.pass.Verify(user.PasswordHash, current) != nil {
 		h.render(w, r, ChangePasswordPage("Current password is incorrect.", false, forced))
 		return
 	}
@@ -195,7 +199,7 @@ func (h *AdminHandlers) ChangePasswordSubmit(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(newPw), bcrypt.DefaultCost)
+	hash, err := h.pass.Hash(newPw)
 	if err != nil {
 		h.render(w, r, ChangePasswordPage("Failed to hash password.", false, forced))
 		return
@@ -203,7 +207,7 @@ func (h *AdminHandlers) ChangePasswordSubmit(w http.ResponseWriter, r *http.Requ
 
 	if err := h.queries.UpdateUserPassword(r.Context(), db.UpdateUserPasswordParams{
 		ID:           user.ID,
-		PasswordHash: string(hash),
+		PasswordHash: hash,
 	}); err != nil {
 		h.render(w, r, ChangePasswordPage("Failed to update password.", false, forced))
 		return

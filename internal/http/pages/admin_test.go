@@ -18,7 +18,6 @@ import (
 
 	"github.com/alecthomas/assert/v2"
 	"github.com/alexedwards/scs/v2"
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/belak/btta/internal/db"
 	"github.com/belak/btta/internal/storage"
@@ -49,11 +48,11 @@ func newTestAdmin(t *testing.T) (*AdminHandlers, http.Handler) {
 
 func createUser(t *testing.T, h *AdminHandlers, username, password string) {
 	t.Helper()
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	hash, err := h.pass.Hash(password)
 	assert.NoError(t, err)
 	_, err = h.queries.CreateUser(context.Background(), db.CreateUserParams{
 		Username:     username,
-		PasswordHash: string(hash),
+		PasswordHash: hash,
 	})
 	assert.NoError(t, err)
 }

@@ -80,7 +80,7 @@
 
                 src = ./.;
 
-                vendorHash = "sha256-CSfbHQMoHnMAr8qF5juByAoW/loNPoAimT0BtE+hu24=";
+                vendorHash = "sha256-cuqudbYbINka79axVcUbL6EYAZm01rqLfILmUrsjBpM=";
 
                 subPackages = [ "cmd/btta" ];
 
