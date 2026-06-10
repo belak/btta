@@ -11,6 +11,8 @@ import (
 
 	"github.com/belak/x/slogx"
 	"github.com/belak/x/versionx"
+
+	"github.com/belak/btta/internal/buildinfo"
 )
 
 func main() {
@@ -27,7 +29,7 @@ func main() {
 				Usage:     "btta version",
 				ShortHelp: "print version and exit",
 				Exec: func(ctx context.Context, args []string) error {
-					fmt.Printf("btta %s (go %s)\n", versionx.Get(), versionx.GoVersion())
+					fmt.Printf("btta %s (go %s)\n", versionx.Get(buildinfo.Version), versionx.GoVersion())
 					return nil
 				},
 			},

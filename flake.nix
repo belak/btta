@@ -29,6 +29,8 @@
           # exit under node 24, and the frontend lockfile was generated with
           # pnpm 10 — pin it for both the deps fetcher and the devshell.
           pnpm = pkgs.pnpm_10;
+
+          version = "0.1.0";
         in
         {
           packages =
@@ -43,7 +45,7 @@
               # cmd/btta embeds via go:embed.
               btta-frontend = pkgs.stdenv.mkDerivation (finalAttrs: {
                 pname = "btta-frontend";
-                version = "0.1.0";
+                inherit version;
 
                 src = ./frontend;
 
@@ -74,7 +76,7 @@
 
               btta = pkgs.buildGoModule {
                 pname = "btta";
-                version = "0.1.0";
+                inherit version;
 
                 src = ./.;
 
@@ -93,6 +95,7 @@
                 ldflags = [
                   "-s"
                   "-w"
+                  "-X github.com/belak/btta/internal/buildinfo.Version=${version}"
                 ];
               };
             };

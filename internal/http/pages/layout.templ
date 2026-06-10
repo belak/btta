@@ -2,6 +2,8 @@ package pages
 
 import "github.com/belak/x/versionx"
 
+import "github.com/belak/btta/internal/buildinfo"
+
 templ layout(title string) {
 	<!DOCTYPE html>
 	<html lang="en">
@@ -28,7 +30,7 @@ templ layout(title string) {
 				{ children... }
 			</main>
 			<footer>
-				{ versionx.Get() }
+				{ versionx.Get(buildinfo.Version) }
 			</footer>
 		</body>
 	</html>
