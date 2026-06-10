@@ -11,11 +11,11 @@ import (
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
 
-	"github.com/belak/btta/internal/db"
 	"github.com/belak/btta/internal/http/api"
 	"github.com/belak/btta/internal/http/frontend"
 	"github.com/belak/btta/internal/http/pages"
 	"github.com/belak/btta/internal/http/static"
+	"github.com/belak/x/fsx"
 	"github.com/belak/x/httpx"
 )
 
@@ -30,6 +30,10 @@ func NewServer(database *sql.DB, mediaDir string, logger *slog.Logger) *Server {
 	sessions.Store = sqlite3store.NewWithCleanupInterval(database, 30*time.Minute)
 	sessions.Cookie.Name = "btta_session"
 	sessions.Cookie.SameSite = http.SameSiteLaxMode
+	// Require HTTPS for the session cookie. Browsers treat loopback
+	// (localhost / 127.0.0.1) as secure, so this still works for local dev;
+	// production is expected to run behind a TLS-terminating proxy.
+	sessions.Cookie.Secure = true
 	sessions.Lifetime = 7 * 24 * time.Hour
 
 	s := &Server{
@@ -37,6 +41,12 @@ func NewServer(database *sql.DB, mediaDir string, logger *slog.Logger) *Server {
 		sessions: sessions,
 		mediaDir: mediaDir,
 	}
+
+	// CrossOriginProtection rejects non-safe cross-origin browser requests
+	// (CSRF) via Sec-Fetch-Site / Origin checks. Safe methods (GET/HEAD/
+	// OPTIONS) and non-browser requests without those headers are allowed, so
+	// the public API and the import CLI are unaffected.
+	csrf := http.NewCrossOriginProtection()
 
 	s.router.Use(
 		sessions.LoadAndSave,
@@ -46,9 +56,10 @@ func NewServer(database *sql.DB, mediaDir string, logger *slog.Logger) *Server {
 		httpx.Recovery(logger),
 		httpx.SecurityHeaders,
 		corsMiddleware,
+		csrf.Handler,
 	)
 
-	s.setupRoutes(database, logger)
+	s.setupRoutes(database)
 
 	return s
 }
@@ -57,19 +68,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
 
-func (s *Server) setupRoutes(database *sql.DB, logger *slog.Logger) {
-	baseURL := func(r *http.Request) string {
-		scheme := "http"
-		if r.TLS != nil {
-			scheme = "https"
-		}
-		return scheme + "://" + r.Host
-	}
-
-	queries := db.New(database)
-	scores := api.NewScoreHandlers(database, s.mediaDir, baseURL)
-	images := api.NewImageHandlers(database, baseURL)
-	admin := pages.NewAdminHandlers(database, s.mediaDir, s.sessions, baseURL)
+func (s *Server) setupRoutes(database *sql.DB) {
+	scores := api.NewScoreHandlers(database, s.mediaDir)
+	images := api.NewImageHandlers(database)
+	admin := pages.NewAdminHandlers(database, s.mediaDir, s.sessions)
 
 	// Public API
 	s.router.Handle("GET /api/scores/", scores.List)
@@ -78,10 +80,16 @@ func (s *Server) setupRoutes(database *sql.DB, logger *slog.Logger) {
 	s.router.Handle("GET /api/images/{id}/", images.Get)
 
 	// Static assets (embedded)
-	s.router.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(static.FS))).ServeHTTP)
+	staticFS := fsx.NoListFS{FS: http.FS(static.FS)}
+	s.router.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(staticFS)).ServeHTTP)
 
-	// Media files (originals + thumbnails)
-	s.router.Handle("GET /media/", http.StripPrefix("/media/", http.FileServer(http.Dir(s.mediaDir))).ServeHTTP)
+	// Media files (originals + thumbnails). NoListFS disables directory
+	// listings so the media directory's contents can't be enumerated. Media
+	// filenames carry a random suffix that changes on every replacement, so a
+	// given URL's content never changes — safe to cache immutably.
+	mediaFS := fsx.NoListFS{FS: http.Dir(s.mediaDir)}
+	mediaHandler := http.StripPrefix("/media/", http.FileServer(mediaFS))
+	s.router.Handle("GET /media/", cacheControl("public, max-age=31536000, immutable", mediaHandler).ServeHTTP)
 
 	// Auth
 	s.router.Handle("GET /admin/login", admin.LoginPage)
@@ -121,9 +129,14 @@ func (s *Server) setupRoutes(database *sql.DB, logger *slog.Logger) {
 		panic(err)
 	}
 	s.router.Handle("GET /", http.FileServer(http.FS(frontendFS)).ServeHTTP)
+}
 
-	_ = queries
-	_ = logger
+// cacheControl wraps h, setting the given Cache-Control header on responses.
+func cacheControl(value string, h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", value)
+		h.ServeHTTP(w, r)
+	})
 }
 
 func corsMiddleware(next http.Handler) http.Handler {

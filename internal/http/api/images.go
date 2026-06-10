@@ -11,13 +11,11 @@ import (
 
 type ImageHandlers struct {
 	queries *db.Queries
-	baseURL func(r *http.Request) string
 }
 
-func NewImageHandlers(database *sql.DB, baseURL func(r *http.Request) string) *ImageHandlers {
+func NewImageHandlers(database *sql.DB) *ImageHandlers {
 	return &ImageHandlers{
 		queries: db.New(database),
-		baseURL: baseURL,
 	}
 }
 
@@ -28,10 +26,10 @@ type imageResponse struct {
 	Enabled bool   `json:"enabled"`
 }
 
-func (h *ImageHandlers) toResponse(r *http.Request, img db.Image) imageResponse {
+func (h *ImageHandlers) toResponse(img db.Image) imageResponse {
 	imageURL := ""
 	if img.Image != "" {
-		imageURL = h.baseURL(r) + "/media/" + img.Image
+		imageURL = "/media/" + img.Image
 	}
 	return imageResponse{
 		ID:      img.ID,
@@ -50,7 +48,7 @@ func (h *ImageHandlers) List(w http.ResponseWriter, r *http.Request) {
 
 	resp := make([]imageResponse, len(images))
 	for i, img := range images {
-		resp[i] = h.toResponse(r, img)
+		resp[i] = h.toResponse(img)
 	}
 
 	httpx.RespondJSON(w, http.StatusOK, resp)
@@ -75,5 +73,5 @@ func (h *ImageHandlers) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httpx.RespondJSON(w, http.StatusOK, h.toResponse(r, img))
+	httpx.RespondJSON(w, http.StatusOK, h.toResponse(img))
 }

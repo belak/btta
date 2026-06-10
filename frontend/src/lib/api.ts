@@ -29,6 +29,10 @@ type ScoreAPIResponse = {
 
 const BASE_URL: string = import.meta.env.VITE_API_URL ?? '';
 
+// A score counts as "new" if it was created or last modified within this
+// window.
+const NEW_SCORE_WINDOW_SECONDS = 3600 * 24 * 30; // 30 days
+
 export async function fetchScores(): Promise<Score[]> {
   const resp = await fetch(`${BASE_URL}/api/scores/`);
   if (resp.status !== 200) {
@@ -41,8 +45,8 @@ export async function fetchScores(): Promise<Score[]> {
     const modified = parseISO(item.modified);
     const created = parseISO(item.created);
     const newScore =
-      modified > created &&
-      differenceInSeconds(cur, modified) < 3600 * 24 * 30;
+      differenceInSeconds(cur, created) < NEW_SCORE_WINDOW_SECONDS ||
+      differenceInSeconds(cur, modified) < NEW_SCORE_WINDOW_SECONDS;
     return {
       id: item.id,
       gameName: item.game_name,

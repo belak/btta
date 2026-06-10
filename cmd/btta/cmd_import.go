@@ -76,7 +76,7 @@ func importScores(ctx context.Context, database *sql.DB, base, mediaDir string) 
 	}
 
 	for _, s := range scores {
-		filename, err := downloadMedia(s.GameBanner, mediaDir)
+		filename, err := downloadMedia(ctx, base, s.GameBanner, mediaDir)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "warning: download %s: %v\n", s.GameBanner, err)
 		}
@@ -105,7 +105,7 @@ func importImages(ctx context.Context, database *sql.DB, base, mediaDir string) 
 	}
 
 	for _, img := range images {
-		filename, err := downloadMedia(img.Image, mediaDir)
+		filename, err := downloadMedia(ctx, base, img.Image, mediaDir)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "warning: download %s: %v\n", img.Image, err)
 		}
@@ -125,6 +125,13 @@ func importImages(ctx context.Context, database *sql.DB, base, mediaDir string) 
 	return nil
 }
 
+const (
+	// maxJSONBytes caps the size of an API list response we'll decode.
+	maxJSONBytes = 32 << 20 // 32 MiB
+	// maxMediaBytes caps the size of a single downloaded media file.
+	maxMediaBytes = 64 << 20 // 64 MiB
+)
+
 // fetchJSON GETs url and decodes the JSON response body into T.
 func fetchJSON[T any](ctx context.Context, url string) (T, error) {
 	var zero T
@@ -143,28 +150,47 @@ func fetchJSON[T any](ctx context.Context, url string) (T, error) {
 	}
 
 	var v T
-	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxJSONBytes)).Decode(&v); err != nil {
 		return zero, fmt.Errorf("decode response: %w", err)
 	}
 	return v, nil
 }
 
-// downloadMedia downloads a file from srcURL into mediaDir, using the
-// filename from the URL path. Returns the filename (not the full path).
-// If srcURL is empty, returns an empty string without error.
-// If the file already exists, skips the download.
-func downloadMedia(srcURL, mediaDir string) (string, error) {
-	if srcURL == "" {
+// downloadMedia downloads a media file referenced by ref into mediaDir, using
+// the filename from the URL path. ref may be relative (e.g. "/media/x.png"),
+// in which case it is resolved against base, or absolute (as older instances
+// returned). Returns the filename (not the full path). If ref is empty,
+// returns an empty string without error. If the file already exists, skips the
+// download.
+//
+// To avoid SSRF, only http(s) URLs on the same host as base are fetched —
+// never arbitrary URLs the (possibly untrusted) source instance returns — and
+// redirects to other hosts are refused. The download size is capped.
+func downloadMedia(ctx context.Context, base, ref, mediaDir string) (string, error) {
+	if ref == "" {
 		return "", nil
 	}
 
-	u, err := url.Parse(srcURL)
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return "", fmt.Errorf("parse base url: %w", err)
+	}
+	refURL, err := url.Parse(ref)
 	if err != nil {
 		return "", fmt.Errorf("parse url: %w", err)
 	}
-	filename := path.Base(u.Path)
+	src := baseURL.ResolveReference(refURL)
+
+	if src.Scheme != "http" && src.Scheme != "https" {
+		return "", fmt.Errorf("refusing non-http(s) media URL %q", src)
+	}
+	if src.Host != baseURL.Host {
+		return "", fmt.Errorf("refusing media from host %q (expected %q)", src.Host, baseURL.Host)
+	}
+
+	filename := path.Base(refURL.Path)
 	if filename == "." || filename == "/" {
-		return "", fmt.Errorf("could not determine filename from %s", srcURL)
+		return "", fmt.Errorf("could not determine filename from %s", ref)
 	}
 
 	dst := filepath.Join(mediaDir, filename)
@@ -177,7 +203,24 @@ func downloadMedia(srcURL, mediaDir string) (string, error) {
 		return "", fmt.Errorf("create media dir: %w", err)
 	}
 
-	resp, err := http.Get(srcURL) //nolint:noctx
+	client := &http.Client{
+		Timeout: 60 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if req.URL.Host != baseURL.Host {
+				return fmt.Errorf("refusing redirect to host %q", req.URL.Host)
+			}
+			if len(via) >= 10 {
+				return fmt.Errorf("stopped after 10 redirects")
+			}
+			return nil
+		},
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, src.String(), nil)
+	if err != nil {
+		return "", err
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -193,9 +236,16 @@ func downloadMedia(srcURL, mediaDir string) (string, error) {
 	}
 	defer f.Close()
 
-	if _, err := io.Copy(f, resp.Body); err != nil {
+	// Cap the size so an oversized response can't fill the disk. Read one byte
+	// past the limit to detect overruns.
+	written, err := io.Copy(f, io.LimitReader(resp.Body, maxMediaBytes+1))
+	if err != nil {
 		os.Remove(dst)
 		return "", fmt.Errorf("write file: %w", err)
+	}
+	if written > maxMediaBytes {
+		os.Remove(dst)
+		return "", fmt.Errorf("media file exceeds %d bytes", maxMediaBytes)
 	}
 
 	return filename, nil

@@ -15,26 +15,17 @@ import (
 	"github.com/belak/x/slogx"
 )
 
-func newThumbnailsCmd() *ff.Command {
-	return &ff.Command{
-		Name:        "thumbnails",
-		Usage:       "btta thumbnails <subcommand>",
-		ShortHelp:   "manage cached thumbnails",
-		Subcommands: []*ff.Command{newThumbnailsRegenerateCmd()},
-	}
-}
-
-func newThumbnailsRegenerateCmd() *ff.Command {
-	fs := flag.NewFlagSet("regenerate", flag.ContinueOnError)
+func newRegenerateThumbnailsCmd() *ff.Command {
+	fs := flag.NewFlagSet("regenerate-thumbnails", flag.ContinueOnError)
 	dbPath := fs.String("db", "btta.db", "path to SQLite database")
 	mediaDir := fs.String("media-dir", "media", "path to media directory")
 	force := fs.Bool("force", false, "regenerate even if thumbnail already exists")
 
 	return &ff.Command{
-		Name:      "regenerate",
-		Usage:     "btta thumbnails regenerate [flags]",
-		ShortHelp: "regenerate cached thumbnails for all scores",
-		Flags:     ff.NewFlagSetFrom("regenerate", fs),
+		Name:      "regenerate-thumbnails",
+		Usage:     "btta regenerate-thumbnails [flags]",
+		ShortHelp: "generate cached thumbnails for all scores (use --force to rebuild existing)",
+		Flags:     ff.NewFlagSetFrom("regenerate-thumbnails", fs),
 		Exec: func(ctx context.Context, args []string) error {
 			logger := slogx.FromContext(ctx)
 

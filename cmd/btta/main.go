@@ -22,8 +22,9 @@ func main() {
 		Subcommands: []*ff.Command{
 			newServeCmd(),
 			newImportCmd(),
-			newUsersCmd(),
-			newThumbnailsCmd(),
+			newCreateUserCmd(),
+			newForcePasswordResetCmd(),
+			newRegenerateThumbnailsCmd(),
 			{
 				Name:      "version",
 				Usage:     "btta version",

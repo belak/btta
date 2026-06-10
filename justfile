@@ -1,4 +1,4 @@
-default:
+_default:
     @just --list
 
 # Start the dev server with hot-reload (Go + frontend Vite + codegen)

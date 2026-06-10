@@ -321,6 +321,38 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const setImageFile = `-- name: SetImageFile :exec
+UPDATE images SET image = ? WHERE id = ?
+`
+
+type SetImageFileParams struct {
+	Image string `json:"image"`
+	ID    int64  `json:"id"`
+}
+
+// Sets only the image filename without touching updated_at, used when
+// attaching an upload to a freshly created image.
+func (q *Queries) SetImageFile(ctx context.Context, arg SetImageFileParams) error {
+	_, err := q.db.ExecContext(ctx, setImageFile, arg.Image, arg.ID)
+	return err
+}
+
+const setScoreBanner = `-- name: SetScoreBanner :exec
+UPDATE scores SET game_banner = ? WHERE id = ?
+`
+
+type SetScoreBannerParams struct {
+	GameBanner string `json:"game_banner"`
+	ID         int64  `json:"id"`
+}
+
+// Sets only the banner filename without touching updated_at, used when
+// attaching an upload to a freshly created score.
+func (q *Queries) SetScoreBanner(ctx context.Context, arg SetScoreBannerParams) error {
+	_, err := q.db.ExecContext(ctx, setScoreBanner, arg.GameBanner, arg.ID)
+	return err
+}
+
 const setUserForcePasswordReset = `-- name: SetUserForcePasswordReset :exec
 UPDATE users
 SET force_password_reset = TRUE,

@@ -24,6 +24,12 @@ func Open(path string) (*sql.DB, error) {
 		db.Close()
 		return nil, fmt.Errorf("enable WAL: %w", err)
 	}
+	// Wait for the write lock instead of failing immediately with SQLITE_BUSY,
+	// so CLI commands don't error when the server is also running.
+	if _, err := db.Exec(`PRAGMA busy_timeout=5000`); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("set busy timeout: %w", err)
+	}
 	if _, err := db.Exec(`PRAGMA foreign_keys=ON`); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("enable foreign keys: %w", err)

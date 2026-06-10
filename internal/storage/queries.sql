@@ -19,6 +19,11 @@ SET game_banner  = ?,
 WHERE id = ?
 RETURNING *;
 
+-- name: SetScoreBanner :exec
+-- Sets only the banner filename without touching updated_at, used when
+-- attaching an upload to a freshly created score.
+UPDATE scores SET game_banner = ? WHERE id = ?;
+
 -- name: DeleteScore :exec
 DELETE FROM scores WHERE id = ?;
 
@@ -44,6 +49,11 @@ SET name       = ?,
     updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
 WHERE id = ?
 RETURNING *;
+
+-- name: SetImageFile :exec
+-- Sets only the image filename without touching updated_at, used when
+-- attaching an upload to a freshly created image.
+UPDATE images SET image = ? WHERE id = ?;
 
 -- name: DeleteImage :exec
 DELETE FROM images WHERE id = ?;

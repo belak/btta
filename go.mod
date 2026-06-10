@@ -6,7 +6,7 @@ require (
 	github.com/a-h/templ v0.3.1020
 	github.com/alexedwards/scs/sqlite3store v0.0.0-20251002162104-209de6e426de
 	github.com/alexedwards/scs/v2 v2.9.0
-	github.com/belak/x v0.0.0-20260607223931-b11f43f31b60
+	github.com/belak/x v0.0.0-20260610183107-1b5e8ce5e977
 	github.com/peterbourgon/ff/v4 v4.0.0-beta.1
 	golang.org/x/crypto v0.52.0
 	golang.org/x/image v0.41.0
