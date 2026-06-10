@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	github.com/a-h/templ v0.3.1020
+	github.com/alecthomas/assert/v2 v2.11.0
 	github.com/alexedwards/scs/sqlite3store v0.0.0-20251002162104-209de6e426de
 	github.com/alexedwards/scs/v2 v2.9.0
 	github.com/belak/x v0.0.0-20260610183107-1b5e8ce5e977
@@ -15,10 +16,12 @@ require (
 )
 
 require (
+	github.com/alecthomas/repr v0.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/lmittmann/tint v1.1.3 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
