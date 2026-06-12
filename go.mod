@@ -7,7 +7,7 @@ require (
 	github.com/alecthomas/assert/v2 v2.11.0
 	github.com/alexedwards/scs/sqlite3store v0.0.0-20251002162104-209de6e426de
 	github.com/alexedwards/scs/v2 v2.9.0
-	github.com/belak/x v0.0.0-20260610203329-b126334daa1c
+	github.com/belak/x v0.0.0-20260612211613-c69525dd47b1
 	github.com/peterbourgon/ff/v4 v4.0.0-beta.1
 	golang.org/x/image v0.41.0
 	golang.org/x/term v0.44.0

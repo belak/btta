@@ -12,6 +12,10 @@ github.com/alexedwards/scs/v2 v2.9.0 h1:xa05mVpwTBm1iLeTMNFfAWpKUm4fXAW7CeAViqBV
 github.com/alexedwards/scs/v2 v2.9.0/go.mod h1:ToaROZxyKukJKT/xLcVQAChi5k6+Pn1Gvmdl7h3RRj8=
 github.com/belak/x v0.0.0-20260610203329-b126334daa1c h1:8VT+1UpiR/e1VWWW8mBs/l15WY3UMc5bRT5S6YZqx/E=
 github.com/belak/x v0.0.0-20260610203329-b126334daa1c/go.mod h1:xLH49m1wgy507fU8h6rRKa2T2BBtSgbGx/If9AJ8VO8=
+github.com/belak/x v0.0.0-20260611054825-2c4037bcc93c h1:lOom6PtL7jqULiqpNtIF5EwU+QeIo6FxE87V+oFFbd0=
+github.com/belak/x v0.0.0-20260611054825-2c4037bcc93c/go.mod h1:xLH49m1wgy507fU8h6rRKa2T2BBtSgbGx/If9AJ8VO8=
+github.com/belak/x v0.0.0-20260612211613-c69525dd47b1 h1:QtX/WI3EpafYuYIfxhhVvqGvteBqGAXOkfa72lmWpF8=
+github.com/belak/x v0.0.0-20260612211613-c69525dd47b1/go.mod h1:xLH49m1wgy507fU8h6rRKa2T2BBtSgbGx/If9AJ8VO8=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=

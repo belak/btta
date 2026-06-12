@@ -37,7 +37,7 @@ func NewServer(database *sql.DB, mediaDir string, logger *slog.Logger) *Server {
 	sessions.Lifetime = 7 * 24 * time.Hour
 
 	s := &Server{
-		router:   httpx.NewRouter(logger),
+		router:   httpx.NewRouter(),
 		sessions: sessions,
 		mediaDir: mediaDir,
 	}
