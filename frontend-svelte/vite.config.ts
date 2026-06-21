@@ -1,8 +1,11 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [svelte()],
+  resolve: {
+    conditions: ['browser'],
+  },
   build: {
     outDir: '../internal/http/frontend/dist',
     emptyOutDir: true,

@@ -41,7 +41,7 @@
             // {
               default = config.packages.btta;
 
-              # The Svelte frontend, built by Vite into a directory that
+              # The React frontend, built by Vite into a directory that
               # cmd/btta embeds via go:embed.
               btta-frontend = pkgs.stdenv.mkDerivation (finalAttrs: {
                 pname = "btta-frontend";
@@ -52,7 +52,7 @@
                 pnpmDeps = (pkgs.fetchPnpmDeps.override { inherit pnpm; }) {
                   inherit (finalAttrs) pname version src;
                   fetcherVersion = 3;
-                  hash = "sha256-U3r6BkEM6z5ErpHyhpYsq/JsGK0beyJr6cu+Jj+ezT8=";
+                  hash = "sha256-4SrI1HN4NBPwBzF6VN9hCeVaMtFi3KYId/Z/HlDsK/U=";
                 };
 
                 nativeBuildInputs = [
