@@ -28,8 +28,8 @@ const fetchScores = async (): Promise<Score[]> => {
         return {
           id: item.id,
           gameName: item.game_name,
-          gameBanner: item.game_banner,
-          gameBannerThumbnail: item.game_banner_thumbnail,
+          gameBanner: BASE_URL + item.game_banner,
+          gameBannerThumbnail: BASE_URL + item.game_banner_thumbnail,
           playerName: item.player_name,
           playerScore: item.player_score,
           newScore,
@@ -53,7 +53,8 @@ const fetchImages = async (): Promise<Image[]> => {
   try {
     const resp = await fetch(`${BASE_URL}/api/images/`);
     if (resp.status === 200) {
-      return await resp.json();
+      const data: Image[] = await resp.json();
+      return data.map((item) => ({ ...item, image: BASE_URL + item.image }));
     } else {
       const text = await resp.text();
       throw "Failed to get images: " + text;
