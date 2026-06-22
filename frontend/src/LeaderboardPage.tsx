@@ -5,7 +5,6 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import cx from "classnames";
 
 import { useWindowSize, isMobile, useNextPage } from "./utils";
 import useAPIState from "./useAPIState";
@@ -17,24 +16,18 @@ const Leaderboard = ({
 }: {
   onFinished: () => void;
   onNextPage: () => void;
-  paused: boolean,
+  paused: boolean;
 }) => {
-  // Page offset
   const [offset, setOffset] = useState(0);
-  // Number on current page
   const [count, setCount] = useState(1);
 
-  const {
-    state: { scores },
-  } = useAPIState();
+  const { scores } = useAPIState();
 
-  // When scores are updated, preload all relevant images
   useEffect(() => {
     if (scores.length === 0) {
       onFinished();
     }
 
-    // Preload all images
     scores.map(({ gameBannerThumbnail: src }) => {
       let image = new Image();
       image.src = src;
@@ -51,8 +44,6 @@ const Leaderboard = ({
       setOffset(finalOffset);
     }
 
-    // When we're done cycling through the pages, it'll trigger onFinished and
-    // jump back to zero.
     if (finalOffset === 0) {
       onFinished();
     } else {
@@ -62,8 +53,6 @@ const Leaderboard = ({
 
   useNextPage(nextPage, paused);
 
-  // When the window size changes if we're not on mobile, reset it to displaying
-  // 1 so we can properly figure out how many items to display.
   const windowSize = useWindowSize();
   useLayoutEffect(() => {
     if (!isMobile(windowSize)) {
@@ -78,7 +67,6 @@ const Leaderboard = ({
 
     const width = windowSize.width || 0;
 
-    // If we're on mobile, just display everything
     if (width < 1000) {
       setCount(scores.length);
       return;
@@ -92,8 +80,6 @@ const Leaderboard = ({
       return;
     }
 
-    // Calculate how many items we can display. Note that the extra plus one
-    // accounts for the line between rows.
     const newCount = Math.floor(
       containerHeight / (firstScore.clientHeight + 1)
     );
@@ -106,28 +92,17 @@ const Leaderboard = ({
     <div className="scoresContainer" ref={scoresRef}>
       <div className="scores">
         {scores.slice(offset, offset + count).map((item, idx) => {
+          const ns = item.newScore ? " newScore" : "";
           return (
             <React.Fragment key={item.id}>
               {idx !== 0 && <span className="line" />}
-              <span
-                className={cx("gameName", {
-                  newScore: item.newScore,
-                })}
-              >
+              <span className={`gameName${ns}`}>
                 <img src={item.gameBannerThumbnail} alt={item.gameName} />
               </span>
-              <span
-                className={cx("playerName", {
-                  newScore: item.newScore,
-                })}
-              >
+              <span className={`playerName${ns}`}>
                 {item.playerName}
               </span>
-              <span
-                className={cx("score", {
-                  newScore: item.newScore,
-                })}
-              >
+              <span className={`score${ns}`}>
                 {Number(item.playerScore).toLocaleString()}
               </span>
             </React.Fragment>

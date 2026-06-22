@@ -6,104 +6,55 @@ import React, {
 } from "react";
 
 import { fetchImages, fetchScores, Image, Score } from "./api";
-import { useLocalStorage } from "./utils";
 
-type InnerAPIState = {
+type APIState = {
   images: Image[];
   scores: Score[];
   error?: string;
-};
-
-type SetScoresAction = {
-  type: "setScores";
-  payload: Score[];
-};
-
-type SetImagesAction = {
-  type: "setImages";
-  payload: Image[];
-};
-
-type SetErrorAction = {
-  type: "setError";
-  payload: string;
-};
-
-type APIAction = SetImagesAction | SetScoresAction | SetErrorAction;
-
-type APIState = {
-  state: InnerAPIState;
-  baseURL: string;
   refreshImages: () => Promise<void>;
   refreshScores: () => Promise<void>;
-  setBaseURL: (baseURL: string) => void;
 };
+
+type SetScoresAction = { type: "setScores"; payload: Score[] };
+type SetImagesAction = { type: "setImages"; payload: Image[] };
+type SetErrorAction = { type: "setError"; payload: string };
+type APIAction = SetImagesAction | SetScoresAction | SetErrorAction;
+
+type InnerState = { images: Image[]; scores: Score[]; error?: string };
 
 const APIContext = React.createContext<APIState | undefined>(undefined);
 
-const apiReducer = (state: InnerAPIState, action: APIAction): InnerAPIState => {
+const reducer = (state: InnerState, action: APIAction): InnerState => {
   switch (action.type) {
     case "setImages":
-      return {
-        ...state,
-        error: undefined,
-        images: action.payload,
-      };
+      return { ...state, error: undefined, images: action.payload };
     case "setScores":
-      return {
-        ...state,
-        error: undefined,
-        scores: action.payload,
-      };
+      return { ...state, error: undefined, scores: action.payload };
     case "setError":
-      return {
-        ...state,
-        error: action.payload,
-      };
+      return { ...state, error: action.payload };
     default:
       return state;
   }
 };
 
-const initialState: InnerAPIState = {
-  images: [],
-  scores: [],
-};
-
 const APIProvider = ({ children }: PropsWithChildren) => {
-  const [baseURL, setBaseURL] = useLocalStorage("leaderboardUrl", "");
-
-  const [state, dispatch] = useReducer(apiReducer, initialState);
+  const [state, dispatch] = useReducer(reducer, { images: [], scores: [] });
 
   const refreshImages = useCallback(async () => {
     try {
-      const data = await fetchImages(baseURL);
-      dispatch({
-        type: "setImages",
-        payload: data,
-      });
+      dispatch({ type: "setImages", payload: await fetchImages("") });
     } catch (e) {
-      dispatch({
-        type: "setError",
-        payload: String(e),
-      });
+      dispatch({ type: "setError", payload: String(e) });
     }
-  }, [dispatch, baseURL]);
+  }, []);
 
   const refreshScores = useCallback(async () => {
     try {
-      const data = await fetchScores(baseURL);
-      dispatch({
-        type: "setScores",
-        payload: data,
-      });
+      dispatch({ type: "setScores", payload: await fetchScores("") });
     } catch (e) {
-      dispatch({
-        type: "setError",
-        payload: String(e),
-      });
+      dispatch({ type: "setError", payload: String(e) });
     }
-  }, [dispatch, baseURL]);
+  }, []);
 
   useEffect(() => {
     refreshImages();
@@ -112,13 +63,7 @@ const APIProvider = ({ children }: PropsWithChildren) => {
 
   return (
     <APIContext.Provider
-      value={{
-        state,
-        baseURL,
-        refreshImages,
-        refreshScores,
-        setBaseURL,
-      }}
+      value={{ ...state, refreshImages, refreshScores }}
     >
       {children}
     </APIContext.Provider>
@@ -127,11 +72,9 @@ const APIProvider = ({ children }: PropsWithChildren) => {
 
 const useAPIState = (): APIState => {
   const context = React.useContext(APIContext);
-
   if (context === undefined) {
-    throw new Error("useCountState must be used within a CountProvider");
+    throw new Error("useAPIState must be used within an APIProvider");
   }
-
   return context;
 };
 

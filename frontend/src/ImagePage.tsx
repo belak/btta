@@ -13,9 +13,7 @@ const ImagePage = ({
   paused: boolean,
   page: number;
 }) => {
-  const {
-    state: { images },
-  } = useAPIState();
+  const { images } = useAPIState();
 
   const windowSize = useWindowSize();
   const onMobile = isMobile(windowSize);
