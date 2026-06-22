@@ -42,7 +42,7 @@ const APIProvider = ({ children }: PropsWithChildren) => {
 
   const refreshImages = useCallback(async () => {
     try {
-      dispatch({ type: "setImages", payload: await fetchImages("") });
+      dispatch({ type: "setImages", payload: await fetchImages() });
     } catch (e) {
       dispatch({ type: "setError", payload: String(e) });
     }
@@ -50,7 +50,7 @@ const APIProvider = ({ children }: PropsWithChildren) => {
 
   const refreshScores = useCallback(async () => {
     try {
-      dispatch({ type: "setScores", payload: await fetchScores("") });
+      dispatch({ type: "setScores", payload: await fetchScores() });
     } catch (e) {
       dispatch({ type: "setError", payload: String(e) });
     }

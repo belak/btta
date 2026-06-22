@@ -1,5 +1,7 @@
 import { differenceInSeconds, parseISO } from "date-fns";
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+
 type Score = {
   id: number;
   gameName: string;
@@ -10,9 +12,9 @@ type Score = {
   newScore: boolean;
 };
 
-const fetchScores = async (baseURL: string): Promise<Score[]> => {
+const fetchScores = async (): Promise<Score[]> => {
   try {
-    const resp = await fetch(`${baseURL}/api/scores/`);
+    const resp = await fetch(`${BASE_URL}/api/scores/`);
     if (resp.status === 200) {
       const data = await resp.json();
       const cur = new Date();
@@ -47,9 +49,9 @@ type Image = {
   image: string;
 };
 
-const fetchImages = async (baseURL: string): Promise<Image[]> => {
+const fetchImages = async (): Promise<Image[]> => {
   try {
-    const resp = await fetch(`${baseURL}/api/images/`);
+    const resp = await fetch(`${BASE_URL}/api/images/`);
     if (resp.status === 200) {
       return await resp.json();
     } else {
