@@ -52,7 +52,7 @@
                 pnpmDeps = (pkgs.fetchPnpmDeps.override { inherit pnpm; }) {
                   inherit (finalAttrs) pname version src;
                   fetcherVersion = 3;
-                  hash = "sha256-tIS+ptVIBeWNH4T1HSSKMgWzoP+JYn3gGuA8SKHYt7U=";
+                  hash = "sha256-GjoJFjrXfvWx9zXi0HUPJnFCoRP6lZGCsVSt24ZbZWM=";
                 };
 
                 nativeBuildInputs = [
