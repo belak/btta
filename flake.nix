@@ -25,11 +25,6 @@
           ...
         }:
         let
-          # pnpm 11 (the nixpkgs default behind fetchPnpmDeps) crashes on
-          # exit under node 24, and the frontend lockfile was generated with
-          # pnpm 10 — pin it for both the deps fetcher and the devshell.
-          pnpm = pkgs.pnpm_10;
-
           version = "0.1.0";
         in
         {
@@ -49,16 +44,16 @@
 
                 src = ./frontend;
 
-                pnpmDeps = (pkgs.fetchPnpmDeps.override { inherit pnpm; }) {
+                pnpmDeps = pkgs.fetchPnpmDeps {
                   inherit (finalAttrs) pname version src;
-                  fetcherVersion = 3;
-                  hash = "sha256-tIS+ptVIBeWNH4T1HSSKMgWzoP+JYn3gGuA8SKHYt7U=";
+                  fetcherVersion = 4;
+                  hash = "sha256-uJu/qs090yQojcLrNSXRL9PN2yQ5TpXtW/ZabrJ8NYE=";
                 };
 
                 nativeBuildInputs = [
                   pkgs.nodejs
-                  pnpm
-                  (pkgs.pnpmConfigHook.override { inherit pnpm; })
+                  pkgs.pnpm
+                  pkgs.pnpmConfigHook
                 ];
 
                 buildPhase = ''
